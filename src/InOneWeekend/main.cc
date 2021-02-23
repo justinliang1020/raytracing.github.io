@@ -18,6 +18,7 @@
 #include "sphere.h"
 
 #include <iostream>
+#include <fstream>
 
 
 color ray_color(const ray& r, const hittable& world, int depth) {
@@ -93,10 +94,10 @@ int main() {
     // Image
 
     const auto aspect_ratio = 16.0 / 9.0;
-    const int image_width = 1200;
+    const int image_width = 200;
     const int image_height = static_cast<int>(image_width / aspect_ratio);
     const int samples_per_pixel = 10;
-    const int max_depth = 50;
+    const int max_depth = 20;
 
     // World
 
@@ -113,6 +114,10 @@ int main() {
     camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus);
 
     // Render
+
+    std::ofstream out("out.ppm");
+    std::streambuf* coutbuf = std::cout.rdbuf(); //save old buf
+    std::cout.rdbuf(out.rdbuf()); //redirect std::cout to out.txt!
 
     std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
 
