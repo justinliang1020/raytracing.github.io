@@ -17,8 +17,40 @@
 #include "material.h"
 #include "sphere.h"
 
+#include <SDL.h>
+#include <emscripten.h>
+
 #include <iostream>
 #include <fstream>
+#include <stdlib.h>
+#include <stdint.h>
+
+
+
+// Image
+
+const auto aspect_ratio = 16.0 / 9.0;
+const int image_width = 250;
+const int image_height = static_cast<int>(image_width / aspect_ratio);
+const int samples_per_pixel = 20;
+const int max_depth = 15;
+
+// Camera
+
+point3 lookfrom(13, 2, 3);
+point3 lookat(0, 0, 0);
+vec3 vup(0, 1, 0);
+auto dist_to_focus = 10.0;
+auto aperture = 0.1;
+
+camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus);
+
+// SDL
+
+SDL_Window* window;
+SDL_Renderer* renderer;
+SDL_Surface* surface;
+
 
 
 color ray_color(const ray& r, const hittable& world, int depth) {
@@ -88,33 +120,81 @@ hittable_list random_scene() {
     return world;
 }
 
+hittable_list test_scene() {
+    hittable_list world;
+
+    auto ground_material = make_shared<lambertian>(color(0.5, 0.5, 0.5));
+    world.add(make_shared<sphere>(point3(0, -1000, 0), 1000, ground_material));
+
+    point3 center(5, 0.4, 2);
+    point3 center2(3, 0.2, 1);
+    auto albedo = color::random(0.6, 1);
+    auto albedo2 = color::random(0.3, 0.6);
+    auto fuzz = random_double(0, 0.5);
+
+    shared_ptr<material> sphere_material = make_shared<metal>(albedo, fuzz);
+    shared_ptr<material> sphere_material2 = make_shared<metal>(albedo2, fuzz);
+    world.add(make_shared<sphere>(center, 0.4, sphere_material));
+    world.add(make_shared<sphere>(center2, 0.2, sphere_material2));
+
+    return world;
+}
+
+// World
+
+auto world = test_scene();
+
+void drawSurface() {
+    if (SDL_MUSTLOCK(surface)) SDL_LockSurface(surface);
+
+    Uint8* pixels = (Uint8*)surface->pixels;
+
+    for (int j = image_height - 1; j >= 0; --j) {
+        for (int i = 0; i < image_width; ++i) {
+            color pixel_color(0, 0, 0);
+            for (int s = 0; s < samples_per_pixel; ++s) {
+                auto u = (i + random_double()) / (image_width - 1);
+                auto v = (j + random_double()) / (image_height - 1);
+                ray r = cam.get_ray(u, v);
+                pixel_color += ray_color(r, world, max_depth);
+            }
+            auto r = pixel_color.x();
+            auto g = pixel_color.y();
+            auto b = pixel_color.z();
+
+            // Replace NaN components with zero. See explanation in Ray Tracing: The Rest of Your Life.
+            if (r != r) r = 0.0;
+            if (g != g) g = 0.0;
+            if (b != b) b = 0.0;
+
+            // Divide the color by the number of samples and gamma-correct for gamma=2.0.
+            auto scale = 1.0 / samples_per_pixel;
+            r = sqrt(scale * r);
+            g = sqrt(scale * g);
+            b = sqrt(scale * b);
+
+            int pixel_index = (i + (image_height - 1 - j) * image_width) * 4;
+            pixels[pixel_index] = 256 * clamp(b, 0.0, 0.999); //blue
+            pixels[pixel_index + 1] = 256 * clamp(g, 0.0, 0.999); //green
+            pixels[pixel_index + 2] = 256 * clamp(r, 0.0, 0.999); //red
+            pixels[pixel_index + 3] = 100; //alpha
+        }
+    }
+    if (SDL_MUSTLOCK(surface)) SDL_UnlockSurface(surface);
+
+    SDL_Texture* screenTexture = SDL_CreateTextureFromSurface(renderer, surface);
+
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, screenTexture, NULL, NULL);
+    SDL_RenderPresent(renderer);
+
+    SDL_DestroyTexture(screenTexture);
+}
 
 int main() {
 
-    // Image
 
-    const auto aspect_ratio = 16.0 / 9.0;
-    const int image_width = 200;
-    const int image_height = static_cast<int>(image_width / aspect_ratio);
-    const int samples_per_pixel = 10;
-    const int max_depth = 20;
-
-    // World
-
-    auto world = random_scene();
-
-    // Camera
-
-    point3 lookfrom(13,2,3);
-    point3 lookat(0,0,0);
-    vec3 vup(0,1,0);
-    auto dist_to_focus = 10.0;
-    auto aperture = 0.1;
-
-    camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus);
-
-    // Render
-
+    /* PPM Render
     std::ofstream out("out.ppm");
     std::streambuf* coutbuf = std::cout.rdbuf(); //save old buf
     std::cout.rdbuf(out.rdbuf()); //redirect std::cout to out.txt!
@@ -134,6 +214,12 @@ int main() {
             write_color(std::cout, pixel_color, samples_per_pixel);
         }
     }
-
     std::cerr << "\nDone.\n";
+    */
+
+    SDL_Init(SDL_INIT_VIDEO);
+    SDL_CreateWindowAndRenderer(image_width, image_height, 0, &window, &renderer);
+    surface = SDL_CreateRGBSurface(0, image_width, image_height, 32, 0, 0, 0, 0);
+
+    emscripten_set_main_loop(drawSurface, 0, 1);
 }
