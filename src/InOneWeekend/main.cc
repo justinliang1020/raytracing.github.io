@@ -32,12 +32,12 @@
 const auto aspect_ratio = 16.0 / 9.0;
 const int image_width = 250;
 const int image_height = static_cast<int>(image_width / aspect_ratio);
-const int samples_per_pixel = 20;
-const int max_depth = 15;
+const int samples_per_pixel = 2; // min = 1 (2 prefer)
+const int max_depth = 2; //min = 2
 
 // Camera
 
-point3 lookfrom(13, 2, 3);
+point3 lookfrom(0, 2, -10); // (13,2,3)
 point3 lookat(0, 0, 0);
 vec3 vup(0, 1, 0);
 auto dist_to_focus = 10.0;
@@ -50,6 +50,7 @@ camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus);
 SDL_Window* window;
 SDL_Renderer* renderer;
 SDL_Surface* surface;
+SDL_Event e;
 
 
 
@@ -144,10 +145,54 @@ hittable_list test_scene() {
 
 auto world = test_scene();
 
+void player_move() {
+    while (SDL_PollEvent(&e) != 0) {
+        if (e.type == SDL_KEYDOWN) {
+            switch (e.key.keysym.sym) {
+            //translations
+            case SDLK_w:
+                cam.move_cam(vec3(0, 0, 1), 1.0);  //forward
+                break;
+            case SDLK_s:
+                cam.move_cam(vec3(0, 0, -1), 1.0); //backwards
+                break;
+            case SDLK_a:
+                cam.move_cam(vec3(-1, 0, 0), 0.5); //left
+                break;
+            case SDLK_d:
+                cam.move_cam(vec3(1, 0, 0), 0.5);  //right
+                break;
+            case SDLK_SPACE:
+                cam.move_cam(vec3(0, 1, 0), 0.5);   //up
+                break;
+            case SDLK_LCTRL:
+                cam.move_cam(vec3(0, -1, 0), 0.5);  //down
+                break;
+            //rotations
+            case SDLK_UP:
+                cam.rotate_cam(vec3(1, 0, 0), -5);  //up
+                break;
+            case SDLK_DOWN:
+                cam.rotate_cam(vec3(1, 0, 0), 5);   //down
+                break;
+            case SDLK_LEFT:
+                cam.rotate_cam(vec3(0, 1, 0), -5);  //left
+                break;
+            case SDLK_RIGHT:
+                cam.rotate_cam(vec3(0, 1, 0), 5);   //right
+                break;
+            }
+            cam.reset_cam();
+        }
+    }
+}
+
 void drawSurface() {
     if (SDL_MUSTLOCK(surface)) SDL_LockSurface(surface);
 
     Uint8* pixels = (Uint8*)surface->pixels;
+
+    player_move();
 
     for (int j = image_height - 1; j >= 0; --j) {
         for (int i = 0; i < image_width; ++i) {
