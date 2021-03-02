@@ -64,6 +64,10 @@ class camera {
             );
         }
 
+        void vertical_clamp(vec3& point) {
+            point.e[1] = clamp(point.y(), 0.1, 50);
+        }
+
         //TODO: prevent player from moving underground
         /*Move camera where direction is relative to camera perspective 
         */
@@ -86,11 +90,11 @@ class camera {
                 pos = false;
             }
             else if (direction == vec3(0, 1, 0)) {  //up
-                cam_unit = vec3(0, cam_unit.z(), -cam_unit.y()); //rotate cam_unit by right angle about x-axis
+                cam_unit = vec3(0, 1, 0);
                 pos = true;
             }
             else if (direction == vec3(0, -1, 0)) { //down
-                cam_unit = vec3(0, cam_unit.z(), -cam_unit.y()); //rotate cam_unit by right angle about x-axis
+                cam_unit = vec3(0, 1, 0);
                 pos = false;
             }
             if (pos) {
@@ -100,6 +104,10 @@ class camera {
             else {
                 lookat -= cam_unit * magnitude;
                 origin -= cam_unit * magnitude;
+            }
+            vertical_clamp(origin);
+            if (origin.y() == 0.1 && (direction == vec3(0, 1, 0) || direction == vec3(0, -1, 0))) {
+                vertical_clamp(lookat); //clamp vertical movement camera from glitching
             }
         }
 
@@ -155,6 +163,12 @@ class camera {
             horizontal = focus_dist * viewport_width * u;
             vertical = focus_dist * viewport_height * v;
             lower_left_corner = origin - horizontal / 2 - vertical / 2 - focus_dist * w;
+        }
+
+        bool vert_flip() {      //weird camera thing bad fix
+            if (lookat.z() - origin.z() < 0)
+                return true;
+            return false;
         }
 
     private:
