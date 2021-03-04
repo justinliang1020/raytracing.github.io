@@ -129,7 +129,7 @@ class camera {
                 y_prime = y_prime * c - z_prime * s;
                 z_prime = y_prime * s + z_prime * c;
             }
-            else if (axis == vec3(0, 1, 0)) {
+            else if (axis == vec3(0, 1, 0)) { 
                 x_prime = x_prime * c - z_prime * s;
                 z_prime = x_prime * s + z_prime * c;
             }
