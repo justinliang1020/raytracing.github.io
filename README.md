@@ -7,11 +7,11 @@ Introduction
 This is a webassembly-based raytracer that allows for real-time camera movement and rendering all done in-browser. It is a fork of the [Raytracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html) book series/code by Peter Shirley.
 
 Stuff I added:
-SDL2 compatibility
-WebAssembly compatibility through Emscripten
-Real-time camera movement on lower render settings (NOTE: VERTICAL CAMERA ROTATION IS BUGGED WILL FIX)
-World editing through adding spheres through GUI
-Varied quality rendering settings through GUI
+1. SDL2 compatibility
+2. WebAssembly compatibility through Emscripten
+3. Real-time camera movement on lower render settings (NOTE: VERTICAL CAMERA ROTATION IS BUGGED WILL FIX)
+4. World editing through adding spheres through GUI
+5. Varied quality rendering settings through GUI
 
 
 Building and Running
