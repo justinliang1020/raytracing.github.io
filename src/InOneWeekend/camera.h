@@ -63,6 +63,10 @@ class camera {
                 random_double(time0, time1)
             );
         }
+        
+        point3 get_origin() const {
+            return origin;
+        }
 
         void vertical_clamp(vec3& point) {
             point.e[1] = clamp(point.y(), 0.1, 50);

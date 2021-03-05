@@ -149,17 +149,108 @@ hittable_list test_scene() {
 
 auto world = test_scene();
 
-void add_sphere(point3 center) {
-    auto albedo = color::random(0.6, 1);
-    auto fuzz = random_double(0, 0.5);
+void add_sphere(point3 center, vec3 albedo, double fuzz) {
     shared_ptr<material> sphere_material = make_shared<metal>(albedo, fuzz);
 
-    world.add(make_shared<sphere>(center, 0.3, sphere_material));
+    world.add(make_shared<sphere>(center, 0.3, sphere_material));   //sphere radius set to 0.3
 }
 
 void add_sphere_random() {
+    auto albedo = color::random(0.6, 1);
+    auto fuzz = random_double(0, 0.5);
     point3 center = point3(random_double(-3, 3), random_double(0, 3), random_double(-3, 3));
-    add_sphere(center);
+    add_sphere(center, albedo, fuzz);
+}
+
+void add_sphere_player() {
+    int albedo_choice = EM_ASM_INT(
+        return getAttribute("albedo");
+    );
+    int fuzz_choice = EM_ASM_INT(
+        return getAttribute("fuzz");
+    );
+    vec3 albedo = color::random(0, 1.0);
+    double fuzz = random_double(0, 1.0);
+    switch (albedo_choice) {
+    case 1:
+        albedo = color::random(0, 0.3);
+        break;
+    case 2: 
+        albedo = color::random(0.3, 0.6);
+        break;
+    case 3:
+        albedo = color::random(0.6, 1.0);
+        break;
+    }
+    switch (fuzz_choice) {
+    case 1:
+        fuzz = random_double(0, 0.3);
+        break;
+    case 2:
+        fuzz = random_double(0.3, 0.6);
+        break;
+    case 3:
+        fuzz = random_double(0.6, 1.0);
+        break;
+    }
+    add_sphere(cam.get_origin(), albedo, fuzz);
+}
+
+void change_render() {
+    int width_choice = EM_ASM_INT(
+        return getAttribute("image_width");
+    );
+    int max_depth_choice = EM_ASM_INT(
+        return getAttribute("max_depth");
+    );
+    int sampling_per_pixel_choice = EM_ASM_INT(
+        return getAttribute("sampling_per_pixel");
+    );
+    int new_image_width;
+    int new_max_depth;
+    int new_samples_per_pixel;
+    switch (width_choice) {
+    case 1:
+        new_image_width = 400;
+        break;
+    case 2:
+        new_image_width = 600;
+        break;
+    case 3:
+        new_image_width = 800;
+        break;
+    }
+    switch (max_depth_choice) {
+    case 1:
+        new_max_depth = 10;
+        break;
+    case 2:
+        new_max_depth = 30;
+        break;
+    case 3:
+        new_max_depth = 50;
+        break;
+    }
+    switch (sampling_per_pixel_choice) {
+    case 1:
+        new_samples_per_pixel = 10;
+        break;
+    case 2:
+        new_samples_per_pixel = 30;
+        break;
+    case 3:
+        new_samples_per_pixel = 50;
+        break;
+    }
+    image_width = new_image_width;
+    image_height = static_cast<int>(image_width / aspect_ratio);
+    samples_per_pixel = new_samples_per_pixel; // min = 1
+    max_depth = new_max_depth; //min = 2
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_CreateWindowAndRenderer(image_width, image_height, 0, &window, &renderer);
+    SDL_FreeSurface(surface);
+    surface = SDL_CreateRGBSurface(0, image_width, image_height, 32, 0, 0, 0, 0);
 }
 
 void change_render(int new_image_width, int new_max_depth, int new_samples_per_pixel) {
@@ -167,7 +258,7 @@ void change_render(int new_image_width, int new_max_depth, int new_samples_per_p
     image_height = static_cast<int>(image_width / aspect_ratio);
     samples_per_pixel = new_samples_per_pixel; // min = 1
     max_depth = new_max_depth; //min = 2
-    SDL_DestroyRenderer(renderer);      // WTFFF
+    SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_CreateWindowAndRenderer(image_width, image_height, 0, &window, &renderer);
     SDL_FreeSurface(surface);
@@ -223,7 +314,7 @@ void player_input() {
             //screenshot
             case SDLK_p:
                 if (!quality_mode) {
-                    change_render(500, 10, 10);
+                    change_render();
                     quality_mode = true;
                 }
                 else {
@@ -234,7 +325,7 @@ void player_input() {
                 break;
             //add sphere
             case SDLK_r:
-                add_sphere_random();
+                add_sphere_player();
                 break;
             }
 
